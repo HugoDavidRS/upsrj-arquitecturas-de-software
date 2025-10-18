@@ -1,42 +1,48 @@
-# ============================================================
-# Politécnica de Santa Rosa
-#
-# Materia: Arquitecturas de Software
-# Profesor: Jesús Salvador López Ortega
-# Grupo: ISW28
-# Archivo: app.py
-# Descripción: Backend del microservicio
-# ============================================================
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from flask import Flask, request, render_template, redirect, url_for
-from common.utils import load_item, save_item, get_host
-from common.vars import USERS_FILE, USER_SERVICE_URL
+from flask import Flask, request, jsonify, render_template
+import os
 
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-app = Flask(__name__, template_folder=template_dir)
+app = Flask(__name__)
 
-@app.route('/users', methods=['GET'])
+users = []
+next_user_id = 1
+
+@app.route('/users')
 def get_users():
-    users = load_item(USERS_FILE)
-    return render_template("users.html", users=users)
+    try:
+        return render_template('users.html', users=users), 200
+    except Exception as e:
+        return jsonify({"users": users}), 200
 
-@app.route('/users/create', methods=['GET'])
-def create_user_form():
-    return render_template("create_user.html")
+@app.route('/users/<int:user_id>')
+def get_user(user_id):
+    user = next((u for u in users if u['id'] == user_id), None)
+    if user:
+        return jsonify(user), 200
+    return jsonify({"error": "Usuario no encontrado"}), 404
 
 @app.route('/users', methods=['POST'])
 def create_user():
-    name = request.form.get("name")
+    global next_user_id
+    
+    # Manejar tanto JSON como form-data
+    if request.is_json:
+        data = request.get_json()
+        name = data.get('name') if data else None
+    else:
+        name = request.form.get('name')
+    
     if not name:
-        return "El nombre del usuario es requerido", 400
-
-    users = load_item(USERS_FILE)
-    user = {'id': len(users) + 1, 'name': name}
-    users.append(user)
-    save_item(USERS_FILE, users)
-
-    return redirect(url_for('get_users'))
+        return jsonify({"error": "El nombre es requerido"}), 400
+    
+    new_user = {
+        'id': next_user_id,
+        'name': name
+    }
+    
+    users.append(new_user)
+    next_user_id += 1
+    
+    return jsonify(new_user), 200
 
 if __name__ == '__main__':
-    app.run(port=get_host(USER_SERVICE_URL))
+    app.run(port=5001, debug=True)

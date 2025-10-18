@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Compras</title>
+</head>
+<body>
+    <h1>Compras</h1>
+    {% if purchases %}
+        <ul>
+        {% for purchase in purchases %}
+            <li>Compra ID: {{ purchase.id }}, Usuario: {{ purchase.user_id }}, Producto: {{ purchase.product_id }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No hay compras registradas.</p>
+    {% endif %}
+</body>
+</html>

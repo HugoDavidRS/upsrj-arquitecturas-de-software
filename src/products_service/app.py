@@ -1,42 +1,56 @@
-# ============================================================
-# Politécnica de Santa Rosa
-#
-# Materia: Arquitecturas de Software
-# Profesor: Jesús Salvador López Ortega
-# Grupo: ISW28
-# Archivo: app.py
-# Descripción: Backend del microservicio
-# ============================================================
-import sys, os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from flask import Flask, request, render_template, redirect, url_for
-from common.utils import load_item, save_item, get_host
-from common.vars import PRODUCTS_FILE, PRODUCT_SERVICE_URL
+from flask import Flask, request, jsonify, render_template
+import os
 
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-app = Flask(__name__, template_folder=template_dir)
+app = Flask(__name__)
 
-@app.route('/products', methods=['GET'])
+products = []
+next_product_id = 1
+
+@app.route('/products')
 def get_products():
-    products = load_item(PRODUCTS_FILE)
-    return render_template("products.html", products=products)
+    try:
+        return render_template('products.html', products=products), 200
+    except Exception as e:
+        return jsonify({"products": products}), 200
 
-@app.route('/products/create', methods=['GET'])
-def create_product_form():
-    return render_template("create_product.html")
+@app.route('/products/<int:product_id>')
+def get_product(product_id):
+    product = next((p for p in products if p['id'] == product_id), None)
+    if product:
+        return jsonify(product), 200
+    return jsonify({"error": "Producto no encontrado"}), 404
 
 @app.route('/products', methods=['POST'])
 def create_product():
-    name = request.form.get("name")
-    if not name:
-        return "El nombre del producto es requerido", 400
-
-    products = load_item(PRODUCTS_FILE)
-    product = {'id': len(products) + 1, 'name': name}
-    products.append(product)
-    save_item(PRODUCTS_FILE, products)
-
-    return redirect(url_for('get_products'))
+    global next_product_id
+    
+    # Manejar tanto JSON como form-data
+    if request.is_json:
+        data = request.get_json()
+        name = data.get('name') if data else None
+        price = data.get('price') if data else None
+    else:
+        name = request.form.get('name')
+        price = request.form.get('price')
+    
+    if not name or not price:
+        return jsonify({"error": "Nombre y precio son requeridos"}), 400
+    
+    try:
+        price = float(price)
+    except ValueError:
+        return jsonify({"error": "El precio debe ser un número válido"}), 400
+    
+    new_product = {
+        'id': next_product_id,
+        'name': name,
+        'price': price
+    }
+    
+    products.append(new_product)
+    next_product_id += 1
+    
+    return jsonify(new_product), 200
 
 if __name__ == '__main__':
-    app.run(port=get_host(PRODUCT_SERVICE_URL))
+    app.run(port=5002, debug=True)
