@@ -302,4 +302,5 @@ Finalmente, al tener abierto el IDE, vamos a pedirle a Visual Studio Code que co
 
 Actualizado: septiembre 2025
 
-🔙 [Volver al índice](#índice)
+🔙 [Volver al índice](#índice)#   T e s t  
+ 
